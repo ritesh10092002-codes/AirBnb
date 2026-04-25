@@ -2,10 +2,13 @@ package com.example.airbnbApp.service;
 
 import com.example.airbnbApp.dto.HotelDto;
 import com.example.airbnbApp.entity.Hotel;
+import com.example.airbnbApp.entity.Room;
 import com.example.airbnbApp.exception.ResourceNotFoundException;
 import com.example.airbnbApp.repository.HotelRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +19,7 @@ public class HotelServiceImpl implements HotelService{
 
     private final HotelRepository hotelRepository;
     private final ModelMapper modelMapper;
+    private final InventoryService inventoryService;
 
 
     @Override
@@ -47,16 +51,20 @@ public class HotelServiceImpl implements HotelService{
     }
 
     @Override
-    public Boolean deleteHotelById(Long id) {
+    @Transactional
+    public @Nullable Void deleteHotelById(Long id) {
         log.info("Deleting hotel with ID: {}",id);
         Hotel hotel=hotelRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Hotel not found with ID: "+id));
          hotelRepository.deleteById(id);
-         //TODO: delete future inventory for this hotel
+        for(Room room: hotel.getRooms()){
+            inventoryService.deleteFutureInventories(room);
+        }
 
-         return true;
+        return null;
     }
 
     @Override
+    @Transactional
     public void activateHotel(Long id) {
         log.info("Activating hotel with ID: {}",id);
         Hotel hotel=hotelRepository.findById(id).
@@ -64,8 +72,11 @@ public class HotelServiceImpl implements HotelService{
 
         hotel.setActive(true);
 
-        //TODO: create inventory for all this room for this hotel
+        //assuming only doing once
 
+        for(Room room: hotel.getRooms()){
+            inventoryService.initializeRoomForAYear(room);
+        }
 
 
     }

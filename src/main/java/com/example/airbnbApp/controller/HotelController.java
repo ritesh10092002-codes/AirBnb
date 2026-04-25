@@ -34,7 +34,7 @@ public class HotelController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Boolean> deleteHotelById(@PathVariable Long id){
+    public ResponseEntity<Void> deleteHotelById(@PathVariable Long id){
         log.info("Deleting hotel for the id: {}",id);
         return ResponseEntity.ok(hotelService.deleteHotelById(id));
     }
